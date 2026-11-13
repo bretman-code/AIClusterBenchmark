@@ -1,17 +1,42 @@
-# AI Cluster Benchmark v0.1 (prototype)
+# AI Cluster Benchmark v0.2
 
-Android 8.1+ (API 27). Kotlin app with CPU math, RAM copy, short repeatability test and JSON export. No internet/root required.
+Android-приложение для сравнения телефонов: CPU, копирование памяти и реальная генерация токенов нейросетью через llama.cpp. Android 8.1+, ARM 32/64 бит.
 
-## Build
-Open in Android Studio (JDK 17, Android SDK 35, Build Tools 35.0.0), sync and select **Build > Build APK(s)**. Or upload the project files to a GitHub repository and run **Actions > Build Android APK > Run workflow**; download the resulting artifact. The workflow pins Gradle 8.9 for AGP 8.7.3. Minimum API is 27; target API is 34. This project contains no native libraries and is not restricted to a specific CPU ABI.
+## Установка
 
-On this computer, run `../build-apk.ps1` from PowerShell using the downloaded tools in the parent `.tools` folder. It runs `assembleDebug lintDebug`.
+Скачайте APK из [Releases](https://github.com/bretman-code/AIClusterBenchmark/releases).
+Версия 0.2 устанавливается поверх 0.1 при совпадении подписи.
 
-## Validation (2026-11-13)
+На главном экране доступны быстрый тест CPU/RAM и отдельный LLM-тест.
+Тёмный интерфейс с карточками, крупными кнопками и прокруткой.
+Результаты обоих типов сохраняются в JSON через системный выбор папки.
 
-Debug APK built successfully; Android Lint: 0 errors, 10 warnings (target API and localization). APK v2 signature and ZIP alignment verified. No phones connected; runtime behavior on HONOR Play and POCO C31 is not yet verified. See TESTING-RU.md for installation and comparison steps.
+Для LLM сначала скачайте небольшую модель кнопкой внутри приложения,
+затем выберите GGUF и запустите тест. Модель не входит в APK.
+Инструкции: [LLM-тест](LLM-TEST-RU.md), [сравнение CPU/RAM](TESTING-RU.md).
 
-JSON export uses the Android document picker. Completed reports survive activity recreation; interrupted runs stop when the activity is destroyed.
+## Сборка
 
-## Caveats
-No llama.cpp/LLM inference yet. No real temperature sensor, long thermal test, Wi-Fi throughput or cluster test yet. CPU benchmark uses one thread and measures elapsed time; RAM copy throughput is affected by cache and is not theoretical DRAM bandwidth (arrays are allocated before timing). Compare devices only under similar conditions.
+JDK 17, Gradle 8.9, Android SDK 35, Build Tools 35.0.0,
+NDK 27.2.12479018, CMake 3.22.1. Минимальный API 27, целевой API 34.
+Откройте проект в Android Studio или запустите GitHub Actions Build Android APK.
+Команда: `gradle --no-daemon assembleDebug lintDebug`.
+При первой сборке CMake скачивает llama.cpp b5046 с проверкой SHA-256.
+Веса моделей при сборке не скачиваются. Лицензия llama.cpp включена в APK.
+
+## Проверка
+
+Версия 0.1 запущена пользователем на телефоне с Android 13 и 32-битной средой.
+Версия 0.2 собирается для armeabi-v7a и arm64-v8a с оптимизированным нативным
+движком. Реальная генерация v0.2 и новый интерфейс на телефоне ещё требуют проверки.
+Скорость нейросети не выводится из синтетических баллов.
+
+## Ограничения
+
+CPU-тест однопоточный. RAM-тест отражает копирование массивов и влияние кэша,
+а не чистую пропускную способность DRAM. Короткий тест повторяемости
+не является тестом температуры или длительного троттлинга.
+LLM-тест: первый проход, 2 потока, контекст 256, не более 32 токенов.
+Сравнивайте только одинаковые SHA-256 модели и настройки.
+Большие модели могут исчерпать память; начните с предлагаемой SmolLM2-135M.
+Wi-Fi-кластер и длительная нагрузка пока не реализованы.

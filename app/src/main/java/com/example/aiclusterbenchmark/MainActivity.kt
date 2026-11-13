@@ -23,22 +23,23 @@ class MainActivity : Activity() {
  private var pendingExport: String? = null
  override fun onCreate(savedInstanceState: Bundle?) {
   super.onCreate(savedInstanceState)
-  val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,36,28,20); setBackgroundColor(Color.rgb(13,18,28)) }
-  val title = TextView(this).apply { text="AI CLUSTER BENCHMARK"; textSize=23f; setTextColor(Color.WHITE) }
-  root.addView(title)
-  val info = TextView(this).apply { text="${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}\n${Build.SUPPORTED_ABIS.joinToString()}"; textSize=14f; setTextColor(Color.LTGRAY); setPadding(0,15,0,20) }
-  root.addView(info)
-  run = Button(this).apply { text="ЗАПУСТИТЬ ТЕСТЫ" }
-  root.addView(run)
-  val save = Button(this).apply { text="СОХРАНИТЬ JSON"; isEnabled=false }
-  root.addView(save)
-  val scroll = ScrollView(this)
-  output = TextView(this).apply { text="CPU: вычислительный тест\nRAM: копирование массивов\nПовторяемость: короткие повторные вычисления\n\nLLM-тест пока не включён."; textSize=15f; setTextColor(Color.WHITE); setPadding(0,18,0,10) }
-  scroll.addView(output); root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
-  setContentView(root)
-  run.setOnClickListener { run.isEnabled=false; save.isEnabled=false; output.text="Выполняется тест..."; executor.execute {
-   try { val r = benchmark(); handler.post { if (!isDestroyed) { report=r; output.text=format(r); run.isEnabled=true; save.isEnabled=true } } }
-   catch(e: Exception) { handler.post { if (!isDestroyed) { output.text="Ошибка: ${e.message}"; run.isEnabled=true } } }
+  val root=Ui.page(this,"На что способен\nтвой телефон?","Измеряй производительность и сравнивай устройства в одинаковых условиях.")
+  val device=Ui.card(this,root,"${Build.MANUFACTURER} ${Build.MODEL}","Android ${Build.VERSION.RELEASE}  ·  ${if(android.os.Process.is64Bit()) "64 бита" else "32 бита"}")
+  device.addView(Ui.text(this,"Всё вычисляется на устройстве",13f,Ui.muted))
+  Ui.gap(this,root)
+  val cpu=Ui.card(this,root,"01  /  CPU и память","Быстрая проверка вычислений, копирования памяти и повторяемости результатов.")
+  run=Ui.button(this,"Запустить быстрый тест",true); cpu.addView(run)
+  Ui.gap(this,root)
+  val ai=Ui.card(this,root,"02  /  Нейросеть","Реальная генерация на CPU. Измеряй скорость в токенах в секунду с выбранной моделью.")
+  val llm=Ui.button(this,"Открыть LLM-тест").apply { setOnClickListener { startActivity(Intent(this@MainActivity,LlmActivity::class.java)) } }; ai.addView(llm)
+  Ui.gap(this,root)
+  val results=Ui.card(this,root,"Результаты")
+  output=Ui.text(this,"Здесь появятся результаты быстрого теста.\n\nМеньше миллисекунд — быстрее CPU.\nБольше МиБ/с — быстрее копирование.",15f,Ui.muted); results.addView(output)
+  Ui.gap(this,results,16)
+  val save=Ui.button(this,"Сохранить результат · JSON").apply { isEnabled=false }; results.addView(save)
+  run.setOnClickListener { run.isEnabled=false; llm.isEnabled=false; save.isEnabled=false; output.text="Выполняется тест..."; executor.execute {
+   try { val r = benchmark(); handler.post { if (!isDestroyed) { report=r; output.text=format(r); run.isEnabled=true; llm.isEnabled=true; save.isEnabled=true } } }
+   catch(e: Exception) { handler.post { if (!isDestroyed) { output.text="Ошибка: ${e.message}"; run.isEnabled=true; llm.isEnabled=true } } }
   } }
   report = savedInstanceState?.getString("report")?.let { JSONObject(it) }
   pendingExport = savedInstanceState?.getString("pendingExport")
@@ -55,7 +56,7 @@ class MainActivity : Activity() {
   val am=getSystemService(ACTIVITY_SERVICE) as ActivityManager
   val mi=ActivityManager.MemoryInfo(); am.getMemoryInfo(mi)
   val r=JSONObject(); r.put("device",Build.MANUFACTURER+" "+Build.MODEL); r.put("android",Build.VERSION.RELEASE); r.put("abi",Build.SUPPORTED_ABIS.joinToString()); r.put("ram_total_mb",mi.totalMem/1048576); r.put("ram_available_mb",mi.availMem/1048576)
-  r.put("timestamp_ms",System.currentTimeMillis()); r.put("benchmark_version","0.1"); r.put("api_level",Build.VERSION.SDK_INT)
+  r.put("timestamp_ms",System.currentTimeMillis()); r.put("benchmark_version","0.2"); r.put("api_level",Build.VERSION.SDK_INT)
   // Fixed work, elapsed time; lower is better. Warm-up to reduce JIT distortion.
   cpuWork(150000); val t0=System.nanoTime(); val check=cpuWork(1200000); val cpuMs=(System.nanoTime()-t0)/1e6
   r.put("cpu_ms",cpuMs); r.put("cpu_checksum",check)
@@ -67,11 +68,11 @@ class MainActivity : Activity() {
   val times=ArrayList<Double>(); repeat(5){ val s=System.nanoTime(); repeatChecksum+=cpuWork(500000); times.add((System.nanoTime()-s)/1e6) }
   r.put("repeat_checksum",repeatChecksum)
   r.put("thermal_first_ms",times.first()); r.put("thermal_last_ms",times.last()); r.put("thermal_slowdown_ratio",times.last()/times.first()); r.put("thermal_note","Short repeatability probe; not a temperature or sustained throttling measurement")
-  r.put("llm_tokens_per_second",JSONObject.NULL); r.put("llm_status","Not implemented in v0.1")
+  r.put("llm_tokens_per_second",JSONObject.NULL); r.put("llm_status","Run separately from the LLM test screen")
   return r
  }
  private fun cpuWork(n:Int): Double { var sum=0.0; for(i in 1..n) { if (i % 4096 == 0 && Thread.currentThread().isInterrupted) throw InterruptedException(); val x=i.toDouble(); sum+=sqrt(x)*sqrt(x+1.0)/(x+3.0) }; return sum }
- private fun format(r:JSONObject):String = String.format(Locale.US,"Устройство: %s\nAndroid: %s\nRAM всего: %d МБ\nRAM свободно: %d МБ\n\nCPU: %.1f мс (меньше лучше)\nRAM copy: %.1f МиБ/с (больше лучше)\nПовторный CPU тест: %.2fx\n\nЭто предварительный синтетический тест. Реальный LLM-тест будет в следующей версии.\n\nНажмите «Сохранить JSON» для экспорта.",r.getString("device"),r.getString("android"),r.getLong("ram_total_mb"),r.getLong("ram_available_mb"),r.getDouble("cpu_ms"),r.getDouble("ram_copy_mib_s"),r.getDouble("thermal_slowdown_ratio"))
+ private fun format(r:JSONObject):String = String.format(Locale.US,"Устройство: %s\nAndroid: %s\nRAM всего: %d МБ\nRAM свободно: %d МБ\n\nCPU: %.1f мс (меньше лучше)\nRAM copy: %.1f МиБ/с (больше лучше)\nПовторный CPU тест: %.2fx\n\nЭто синтетический тест. Реальная скорость нейросети измеряется отдельно кнопкой «Реальный LLM-тест».\n\nНажмите «Сохранить JSON» для экспорта.",r.getString("device"),r.getString("android"),r.getLong("ram_total_mb"),r.getLong("ram_available_mb"),r.getDouble("cpu_ms"),r.getDouble("ram_copy_mib_s"),r.getDouble("thermal_slowdown_ratio"))
  override fun onSaveInstanceState(outState: Bundle) {
   outState.putString("report",report?.toString()); outState.putString("pendingExport",pendingExport)
   super.onSaveInstanceState(outState)
