@@ -1,0 +1,10 @@
+Bundled model: SmolLM2-135M-Instruct, Q4_K_M GGUF quantization.
+Original model by Hugging Face / HuggingFaceTB:
+https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct
+GGUF quantization by bartowski:
+https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF
+License: Apache License 2.0 (see SmolLM2-APACHE-2.0.txt).
+These weights are included unchanged from the GGUF distributor.
+File: SmolLM2-135M-Instruct-Q4_K_M.gguf
+SHA256: 2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d
+Size: 105454432 bytes.

@@ -3,3 +3,5 @@
 **/build/
 **/.cxx/
 local.properties
+app/src/main/assets/models/*.gguf
+app/src/main/assets/models/*.tmp

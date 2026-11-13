@@ -29,6 +29,7 @@ class LlmActivity : Activity() {
     private lateinit var save: Button
     private lateinit var cancel: Button
     private lateinit var progress: ProgressBar
+    private lateinit var bundled: Button
     private var report: JSONObject? = null
     private val model get() = File(filesDir, "benchmark-model.gguf")
     private val prefs get() = getSharedPreferences("llm-model", MODE_PRIVATE)
@@ -38,12 +39,10 @@ class LlmActivity : Activity() {
         val root=Ui.page(this,"Нейросеть\nна твоём CPU","Без облака. Реальные токены в секунду, отдельно от синтетических тестов.")
         root.addView(Ui.button(this,"‹  Все тесты").apply { setOnClickListener { finish() } })
         Ui.gap(this,root)
-        val modelCard=Ui.card(this,root,"1. Подготовь модель","Для начала — SmolLM2-135M Q4_K_M, около 101 МиБ. Скачай файл и выбери его на телефоне.")
-        modelCard.addView(Ui.button(this,"Скачать небольшую модель").apply {
-            setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q4_K_M.gguf?download=true"))) }
-        })
+        val modelCard=Ui.card(this,root,"1. Модель уже в приложении","SmolLM2-135M Q4_K_M встроена в APK. При первом открытии подготовим её автоматически — без интернета.")
+        bundled=Ui.button(this,"Использовать встроенную модель").apply { setOnClickListener { importModel() } }; modelCard.addView(bundled)
         Ui.gap(this,modelCard,8)
-        select=Ui.button(this,"Выбрать файл GGUF"); modelCard.addView(select)
+        select=Ui.button(this,"Выбрать другую модель · GGUF"); modelCard.addView(select)
         Ui.gap(this,root)
         val testCard=Ui.card(this,root,"2. Измерь скорость","До 32 токенов  ·  2 потока  ·  контекст 256\nДля сравнения телефонов используй одну модель.")
         start=Ui.button(this,"Запустить LLM-тест",true).apply { isEnabled=model.exists() }; testCard.addView(start)
@@ -71,10 +70,12 @@ class LlmActivity : Activity() {
                 putExtra(Intent.EXTRA_TITLE,"llm-benchmark-${System.currentTimeMillis()}.json")
             },2)
         }
+        if(!model.exists()) importModel()
     }
     private fun busy(value: Boolean) {
         progress.visibility=if(value) android.view.View.VISIBLE else android.view.View.GONE
         select.isEnabled=!value; start.isEnabled=!value && model.exists()
+        bundled.isEnabled=!value
         cancel.isEnabled=value; save.isEnabled=!value && report!=null
         if(value) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -85,18 +86,18 @@ class LlmActivity : Activity() {
         stopped=true
         synchronized(monitor) { if(handle!=0L) engine?.cancel(handle) }
     }
-    private fun importModel(uri: Uri) {
-        stopped=false; busy(true); output.text="Копирую модель и проверяю файл…"
+    private fun importModel(uri: Uri?=null) {
+        stopped=false; busy(true); output.text=if(uri==null) "Подготавливаю встроенную модель… Интернет не нужен." else "Копирую модель и проверяю файл…"
         worker.execute {
             val temp=File(filesDir,"model-import.tmp")
             try {
-                var name="model.gguf"
-                contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use {
+                var name=if(uri==null) "SmolLM2-135M-Instruct-Q4_K_M.gguf" else "model.gguf"
+                if(uri!=null) contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use {
                     if(it.moveToFirst()) name=it.getString(0) ?: name
                 }
                 val digest=MessageDigest.getInstance("SHA-256")
                 var size=0L
-                val input=contentResolver.openInputStream(uri) ?: error("Не удалось открыть модель")
+                val input=if(uri==null) assets.open("models/smollm2-135m-q4_k_m.gguf") else contentResolver.openInputStream(uri) ?: error("Не удалось открыть модель")
                 input.use { source -> temp.outputStream().use { target ->
                     val buffer=ByteArray(128*1024)
                     while(true) {
@@ -109,8 +110,9 @@ class LlmActivity : Activity() {
                 val magic=temp.inputStream().use { source -> ByteArray(4).also { check(source.read(it)==4) } }
                 check(magic.contentEquals(byteArrayOf(71,71,85,70))) { "Это не файл GGUF" }
                 checkStop()
-                Files.move(temp.toPath(),model.toPath(),StandardCopyOption.REPLACE_EXISTING)
                 val sha=digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+                if(uri==null) check(sha=="2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d") { "Ошибка проверки встроенной модели" }
+                Files.move(temp.toPath(),model.toPath(),StandardCopyOption.REPLACE_EXISTING)
                 prefs.edit().putString("name",name).putString("sha256",sha).commit()
                 ui { output.text="Модель готова: $name\nРазмер: ${size/1048576} МиБ\nНажмите «Запустить LLM-тест»." }
             } catch(e:Exception) { ui { output.text="Ошибка: ${e.message}" } }
