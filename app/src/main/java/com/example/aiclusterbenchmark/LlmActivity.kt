@@ -130,7 +130,7 @@ class LlmActivity : Activity() {
                 val values=native.run(session,model.absolutePath,2)
                 checkStop()
                 val result=JSONObject().apply {
-                    put("benchmark_version","0.2"); put("benchmark_type","llm")
+                    put("benchmark_version","0.3"); put("benchmark_type","llm")
                     put("device","${Build.MANUFACTURER} ${Build.MODEL}"); put("android",Build.VERSION.RELEASE)
                     put("abi",Build.SUPPORTED_ABIS.joinToString()); put("process_64_bit",android.os.Process.is64Bit())
                     put("timestamp_ms",System.currentTimeMillis()); put("engine","llama.cpp b5046 CPU")

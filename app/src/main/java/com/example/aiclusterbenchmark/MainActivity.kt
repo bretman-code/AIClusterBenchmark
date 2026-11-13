@@ -33,13 +33,16 @@ class MainActivity : Activity() {
   val ai=Ui.card(this,root,"02  /  Нейросеть","Реальная генерация на CPU. Измеряй скорость в токенах в секунду с выбранной моделью.")
   val llm=Ui.button(this,"Открыть LLM-тест").apply { setOnClickListener { startActivity(Intent(this@MainActivity,LlmActivity::class.java)) } }; ai.addView(llm)
   Ui.gap(this,root)
+  val network=Ui.card(this,root,"03  /  Связь по Wi-Fi","Найди второй телефон и измерь задержку, приём и отправку данных в одной сети.")
+  val lan=Ui.button(this,"Соединить телефоны").apply { setOnClickListener { startActivity(Intent(this@MainActivity,LanActivity::class.java)) } }; network.addView(lan)
+  Ui.gap(this,root)
   val results=Ui.card(this,root,"Результаты")
   output=Ui.text(this,"Здесь появятся результаты быстрого теста.\n\nМеньше миллисекунд — быстрее CPU.\nБольше МиБ/с — быстрее копирование.",15f,Ui.muted); results.addView(output)
   Ui.gap(this,results,16)
   val save=Ui.button(this,"Сохранить результат · JSON").apply { isEnabled=false }; results.addView(save)
-  run.setOnClickListener { run.isEnabled=false; llm.isEnabled=false; save.isEnabled=false; output.text="Выполняется тест..."; executor.execute {
-   try { val r = benchmark(); handler.post { if (!isDestroyed) { report=r; output.text=format(r); run.isEnabled=true; llm.isEnabled=true; save.isEnabled=true } } }
-   catch(e: Exception) { handler.post { if (!isDestroyed) { output.text="Ошибка: ${e.message}"; run.isEnabled=true; llm.isEnabled=true } } }
+  run.setOnClickListener { run.isEnabled=false; llm.isEnabled=false; lan.isEnabled=false; save.isEnabled=false; output.text="Выполняется тест..."; executor.execute {
+   try { val r = benchmark(); handler.post { if (!isDestroyed) { report=r; output.text=format(r); run.isEnabled=true; llm.isEnabled=true; lan.isEnabled=true; save.isEnabled=true } } }
+   catch(e: Exception) { handler.post { if (!isDestroyed) { output.text="Ошибка: ${e.message}"; run.isEnabled=true; llm.isEnabled=true; lan.isEnabled=true } } }
   } }
   report = savedInstanceState?.getString("report")?.let { JSONObject(it) }
   pendingExport = savedInstanceState?.getString("pendingExport")
@@ -56,7 +59,7 @@ class MainActivity : Activity() {
   val am=getSystemService(ACTIVITY_SERVICE) as ActivityManager
   val mi=ActivityManager.MemoryInfo(); am.getMemoryInfo(mi)
   val r=JSONObject(); r.put("device",Build.MANUFACTURER+" "+Build.MODEL); r.put("android",Build.VERSION.RELEASE); r.put("abi",Build.SUPPORTED_ABIS.joinToString()); r.put("ram_total_mb",mi.totalMem/1048576); r.put("ram_available_mb",mi.availMem/1048576)
-  r.put("timestamp_ms",System.currentTimeMillis()); r.put("benchmark_version","0.2"); r.put("api_level",Build.VERSION.SDK_INT)
+  r.put("timestamp_ms",System.currentTimeMillis()); r.put("benchmark_version","0.3"); r.put("api_level",Build.VERSION.SDK_INT)
   // Fixed work, elapsed time; lower is better. Warm-up to reduce JIT distortion.
   cpuWork(150000); val t0=System.nanoTime(); val check=cpuWork(1200000); val cpuMs=(System.nanoTime()-t0)/1e6
   r.put("cpu_ms",cpuMs); r.put("cpu_checksum",check)
