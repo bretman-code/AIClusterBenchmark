@@ -5,3 +5,10 @@
 local.properties
 app/src/main/assets/models/*.gguf
 app/src/main/assets/models/*.tmp
+ios/vendor/
+ios/native/
+ios/build/
+ios/Payload/
+ios/Resources/*.gguf
+ios/*.xcodeproj/
+ios/*.ipa

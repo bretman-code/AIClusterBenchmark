@@ -1,0 +1,32 @@
+name: AIClusterBenchmark
+options:
+  deploymentTarget:
+    iOS: '16.0'
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.bretmancode.aiclusterbenchmark
+    SWIFT_VERSION: '5.0'
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CLANG_CXX_LANGUAGE_STANDARD: c++17
+    SWIFT_OBJC_BRIDGING_HEADER: Sources/LLMRunner.h
+    HEADER_SEARCH_PATHS: '$(inherited) $(SRCROOT)/vendor/include $(SRCROOT)/vendor/ggml/include'
+    LIBRARY_SEARCH_PATHS: '$(inherited) $(SRCROOT)/native/src $(SRCROOT)/native/ggml/src'
+    OTHER_LDFLAGS: '$(inherited) -lllama -lggml -lggml-cpu -lggml-base -lc++'
+    TARGETED_DEVICE_FAMILY: '1'
+    CURRENT_PROJECT_VERSION: '1'
+    MARKETING_VERSION: '0.1'
+targets:
+  AIClusterBenchmark:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    resources: [Resources]
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: AI Cluster
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIRequiresFullScreen: true
+        ITSAppUsesNonExemptEncryption: false
