@@ -25,7 +25,7 @@ jobs:
           cp app/src/main/assets/SmolLM2-APACHE-2.0.txt app/src/main/assets/MODEL-NOTICE.txt ios/Resources/
       - name: Build optimized CPU engine for iPhone
         run: |
-          cmake -S ios/vendor -B ios/native -G Ninja -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DGGML_NATIVE=OFF -DGGML_METAL=OFF -DGGML_ACCELERATE=OFF -DGGML_OPENMP=OFF -DGGML_LLAMAFILE=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_CURL=OFF
+          cmake -S ios/vendor -B ios/native -G Ninja -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DGGML_NATIVE=OFF -DGGML_METAL=OFF -DGGML_ACCELERATE=OFF -DGGML_BLAS=OFF -DGGML_OPENMP=OFF -DGGML_LLAMAFILE=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_CURL=OFF
           cmake --build ios/native --target llama --parallel 3
       - name: Build app and package IPA for local signing
         run: |
@@ -54,3 +54,4 @@ jobs:
         run: |
           gh release view ios-preview >/dev/null 2>&1 || gh release create ios-preview --prerelease --title 'iPhone preview — LLM benchmark' --notes 'Experimental iPhone app with bundled SmolLM2 model. Requires local signing and installation via Sideloadly on Windows; this IPA is not signed for direct installation. No Apple credentials are used by this workflow. Real-device launch is not yet verified. iOS 16+; CPU only; Wi-Fi cluster not included.'
           gh release upload ios-preview ios/AIClusterBenchmark-ios-preview.ipa ios/SHA256.txt --clobber
+
